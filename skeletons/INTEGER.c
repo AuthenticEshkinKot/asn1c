@@ -773,8 +773,8 @@ INTEGER_decode_aper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 					? asn_ulong2INTEGER(st, value)
 					: asn_long2INTEGER(st, value))
 					ASN__DECODE_FAILED;
-					ASN_DEBUG("Got value %lld + low %lld",
-							  value, ct->lower_bound);
+				ASN_DEBUG("Got value %lld + low %lld",
+							value, ct->lower_bound);
 			}
 			return rval;
 		} else {
