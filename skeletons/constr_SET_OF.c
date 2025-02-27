@@ -987,14 +987,12 @@ SET_OF_decode_aper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 		if(value) ct = 0;	/* Not restricted! */
 	}
 
-	if(ct && ct->effective_bits >= 0) {
+	if(ct && ct->upper_bound >= 1 && ct->upper_bound <= 65535
+	   && ct->upper_bound == ct->lower_bound) {
 		/* X.691, #19.5: No length determinant */
-// 		nelems = per_get_few_bits(pd, ct->effective_bits);
-		nelems = aper_get_nsnnwn(pd, ct->upper_bound - ct->lower_bound);
-		ASN_DEBUG("Preparing to fetch %ld+%lld elements from %s",
-			(long)nelems, ct->lower_bound, td->name);
-		if(nelems < 0)  ASN__DECODE_STARVED;
-		nelems += ct->lower_bound;
+		nelems = ct->upper_bound;
+		ASN_DEBUG("Preparing to fetch %ld elements from %s",
+				  (long)nelems, td->name);
 	} else {
 		nelems = -1;
 	}
@@ -1002,10 +1000,13 @@ SET_OF_decode_aper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	do {
 		int i;
 		if(nelems < 0) {
-			nelems = aper_get_length(pd, ct ? ct->upper_bound - ct->lower_bound + 1 : -1,
-				ct ? ct->effective_bits : -1, &repeat);
+			if (ct)
+				nelems = aper_get_length_set_of(pd, ct->lower_bound, ct->upper_bound,
+										 ct->effective_bits, &repeat);
+			else
+				nelems = aper_get_length_set_of(pd, -1, -1, -1, &repeat);
 			ASN_DEBUG("Got to decode %d elements (eff %d)",
-				(int)nelems, (int)(ct ? ct->effective_bits : -1));
+					  (int)nelems, (int)(ct ? ct->effective_bits : -1));
 			if(nelems < 0) ASN__DECODE_STARVED;
 		}
 
