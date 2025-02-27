@@ -77,6 +77,18 @@ ssize_t aper_get_length(asn_per_data_t *pd,
 						int *repeat);
 
 /*
+ * X.691 (08/2015) #11.9 "General rules for encoding a length determinant"
+ * Get the length "n" from the Aligned PER stream.
+ */
+ssize_t aper_get_length_set_of(asn_per_data_t *pd, ssize_t lb, ssize_t ub,
+															 int effective_bound_bits, int *repeat);
+
+/*
+ * Get the constrained whole number.
+ */
+long aper_get_constrained_whole_number(asn_per_data_t *po, long lb, long ub);
+
+/*
  * Get the normally small length "n".
  */
 ssize_t uper_get_nslength(asn_per_data_t *pd);

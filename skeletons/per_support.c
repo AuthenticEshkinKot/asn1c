@@ -200,6 +200,110 @@ uper_get_length(asn_per_data_t *pd, int ebits, int *repeat) {
 }
 
 ssize_t
+aper_get_length_set_of(asn_per_data_t *pd, ssize_t lb, ssize_t ub,
+		int ebits, int *repeat) {
+	int constrained = (lb >= 0) && (ub >= 0);
+	ssize_t value;
+
+	*repeat = 0;
+
+	if (constrained && ub < 65536) {
+		return aper_get_constrained_whole_number(pd, lb, ub);
+	}
+
+	if (aper_get_align(pd) < 0)
+		return -1;
+
+	if(ebits >= 0) return per_get_few_bits(pd, ebits);
+
+	value = per_get_few_bits(pd, 8);
+	if(value < 0) return -1;
+	if((value & 128) == 0)  /* #11.9.3.6 */
+		return (value & 0x7F);
+	if((value & 64) == 0) { /* #11.9.3.7 */
+		value = ((value & 63) << 8) | per_get_few_bits(pd, 8);
+		if(value < 0) return -1;
+		return value;
+	}
+	value &= 63;	/* this is "m" from X.691, #11.9.3.8 */
+	if(value < 1 || value > 4)
+		return -1;
+	*repeat = 1;
+	return (16384 * value);
+}
+
+/* X.691 2002 10.5 - Decoding of a constrained whole number */
+long
+aper_get_constrained_whole_number(asn_per_data_t *pd, long lb, long ub) {
+	assert(ub >= lb);
+	long range = ub - lb + 1;
+	int range_len;
+	int value_len;
+	long value;
+
+	ASN_DEBUG("aper get constrained_whole_number with lb %ld and ub %ld", lb, ub);
+
+	/* X.691 2002 10.5.4 */
+	if (range == 1)
+		return lb;
+
+	/* X.691 2002 10.5.7.1 - The bit-field case. */
+	if (range <= 255) {
+		int bitfield_size = 8;
+		for (bitfield_size = 8; bitfield_size >= 2; bitfield_size--)
+			if ((range - 1) & (1 << (bitfield_size-1)))
+				break;
+		value = per_get_few_bits(pd, bitfield_size);
+		if (value < 0 || value >= range)
+			return -1;
+		return value + lb;
+	}
+
+	/* X.691 2002 10.5.7.2 - The one-octet case. */
+	if (range == 256) {
+		if (aper_get_align(pd))
+			return -1;
+		value = per_get_few_bits(pd, 8);
+		if (value < 0 || value >= range)
+			return -1;
+		return value + lb;
+	}
+
+	/* X.691 2002 10.5.7.3 - The two-octet case. */
+	if (range <= 65536) {
+		if (aper_get_align(pd))
+			return -1;
+		value = per_get_few_bits(pd, 16);
+		if (value < 0 || value >= range)
+			return -1;
+		return value + lb;
+	}
+
+	/* X.691 2002 10.5.7.4 - The indefinite length case. */
+	/* since we limit input to be 'long' we don't handle all numbers */
+	/* and so length determinant is retrieved as X.691 2002 10.9.3.3 */
+	/* number of bytes to store the range */
+	for (range_len = 3; ; range_len++) {
+		long bits = ((long)1) << (8 * range_len);
+		if (range - 1 < bits)
+			break;
+	}
+	value_len = aper_get_constrained_whole_number(pd, 1, range_len);
+	if (value_len == -1)
+		return -1;
+	if (value_len > 4) {
+		ASN_DEBUG("todo: aper_get_constrained_whole_number: value_len > 4");
+		return -1;
+	}
+	if (aper_get_align(pd))
+		return -1;
+	value = per_get_few_bits(pd, value_len * 8);
+	if (value < 0 || value >= range)
+		return -1;
+	return value + lb;
+}
+
+ssize_t
 aper_get_length(asn_per_data_t *pd, int range, int ebits, int *repeat) {
 	ssize_t value;
 
