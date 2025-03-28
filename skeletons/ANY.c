@@ -223,6 +223,11 @@ ANY_to_type_aper(ANY_t *st, asn_TYPE_descriptor_t *td, void **struct_ptr) {
 	}
 }
 
+int
+ANY_to_type_aper_checked(ANY_t *st, asn_TYPE_descriptor_t *td, void **struct_ptr) {
+	return ANY_to_type_aper(st, td, struct_ptr) == 0 && *struct_ptr != 0 ? 0 : -1;
+}
+
 static int ANY__consume_bytes(const void *buffer, size_t size, void *key) {
 	struct _callback_arg *arg = (struct _callback_arg *)key;
 
