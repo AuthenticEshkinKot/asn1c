@@ -443,7 +443,7 @@ aper_get_nsnnwn(asn_per_data_t *pd, int range) {
 		if (length > 4)
 		    return -1;
 		value = 0;
-		if (per_get_many_bits(pd, &value, 0, length * 8) < 0)
+		if (per_get_many_bits(pd, (uint8_t *)&value, 0, length * 8) < 0)
 		    return -1;
 		return value;
 	}
